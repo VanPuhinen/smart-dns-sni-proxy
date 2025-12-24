@@ -5,9 +5,8 @@ services:
     restart: unless-stopped
     ports:
       - "3000:3000/tcp"  # Веб-интерфейс
-    expose:
-      - "53/tcp"
-      - "53/udp"
+      - "53:53/tcp"
+      - "53:53/udp"
     volumes:
       - ./adguard-data/conf:/opt/adguardhome/conf
       - ./adguard-data/work:/opt/adguardhome/work
