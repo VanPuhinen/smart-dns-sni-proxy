@@ -1,0 +1,37 @@
+services:
+  adguard:
+    image: adguard/adguardhome:latest
+    container_name: adguard
+    restart: unless-stopped
+    ports:
+      - "3000:3000/tcp"  # Веб-интерфейс
+    expose:
+      - "53/tcp"
+      - "53/udp"
+    volumes:
+      - ./adguard-data/conf:/opt/adguardhome/conf
+      - ./adguard-data/work:/opt/adguardhome/work
+    cap_add:
+      - NET_ADMIN
+
+  sni-proxy:
+    image: nginx:latest
+    container_name: sni-proxy
+    restart: unless-stopped
+    # Ключевое изменение: публикуем порт 443 наружу
+    ports:
+      - "443:8443/tcp"
+    volumes:
+      - ./nginx-sni.conf:/etc/nginx/nginx.conf:ro
+    command: ["nginx", "-g", "daemon off;"]
+
+  dot-proxy:
+    image: nginx:latest
+    container_name: dot-proxy
+    restart: unless-stopped
+    ports:
+      - "853:853/tcp"
+    volumes:
+      - ./nginx-dot.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx-certs:/etc/ssl/private:ro
+    command: ["nginx", "-g", "daemon off;"]

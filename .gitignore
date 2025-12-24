@@ -1,0 +1,9 @@
+.env
+adguard-data/
+nginx-certs/
+logs/
+*.log
+caddy-data/
+caddy-config/
+.DS_Store
+Thumbs.db

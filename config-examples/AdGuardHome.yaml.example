@@ -1,0 +1,42 @@
+# Пример конфига AdGuard Home
+# ЗАПОЛНИТЕ СВОИ ДАННЫЕ!
+
+http:
+  address: 0.0.0.0:3000
+  session_ttl: 720h
+users:
+  - name: YOUR_USERNAME
+    password: YOUR_PASSWORD_HASH
+auth_attempts: 5
+block_auth_min: 15
+
+dns:
+  bind_hosts:
+    - 0.0.0.0
+  port: 53
+  upstream_dns:
+    - tls://1.1.1.1
+    - tls://dns.google:853
+  bootstrap_dns:
+    - 9.9.9.10
+    - 149.112.112.10
+  cache_enabled: true
+  cache_size: 4194304
+
+filtering:
+  rewrites:
+    - domain: '*.google.com'
+      answer: YOUR_SERVER_IP
+      enabled: true
+    - domain: '*.googleapis.com'
+      answer: YOUR_SERVER_IP
+      enabled: true
+    - domain: '*.gstatic.com'
+      answer: YOUR_SERVER_IP
+      enabled: true
+    - domain: '*.generativelanguage.google.com'
+      answer: YOUR_SERVER_IP
+      enabled: true
+    - domain: 'gemini.google.com'
+      answer: YOUR_SERVER_IP
+      enabled: true
