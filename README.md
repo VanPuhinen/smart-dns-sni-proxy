@@ -1,152 +1,139 @@
-# 🔧 Smart DNS & SNI-прокси для доступа к Google Gemini и другим сервисам
+# 🔧 Smart DNS & SNI Proxy for Access to Google Gemini and Other Services
 
-## 📜 Подробная история проекта
+## 📜 Detailed Project History
 
-Этот проект родился не из учебника, а из практической необходимости получить доступ к таким сервисам, как **Google Gemini (Gemini Advanced)**, на территории, где они заблокированы. Это история о том, как стандартные методы обхода блокировок оказались бесполезны перед современным DPI (Deep Packet Inspection), и как была построена рабочая, хоть и нетривиальная, система.
+This project was born not from a textbook, but from the practical need to access services like **Google Gemini (Gemini Advanced)** in a region where they are blocked. This is a story about how standard bypass methods proved useless against modern DPI (Deep Packet Inspection), and how a working, albeit non-trivial, system was built.
 
-### Проблема
-Простые VPN и Shadowsocks легко детектировались и блокировались. Проксирование через обычный веб-прокси не работало, так как клиенты Google (браузер, API) используют **строгие проверки TLS и SNI (Server Name Indication)**. Блокировка происходила именно на этапе анализа SNI в TLS-рукопожатии.
+### The Problem
+Simple VPNs and Shadowsocks were easily detected and blocked. Proxying through a regular web proxy didn't work because Google clients (browser, API) use **strict TLS and SNI (Server Name Indication) verification**. Blocking occurred precisely at the stage of analyzing SNI in the TLS handshake.
 
-### Решение
-Была реализована двухкомпонентная система:
-1.  **Локальный умный DNS-сервер (AdGuard Home)**: Перехватывает запросы к заблокированным доменам и "обманывает" клиента, подсовывая ему IP-адрес нашего прокси-сервера.
-2.  **Прозрачный SNI-прокси на Nginx**: Принимает зашифрованный TLS-трафик, считывает из него имя сервера (SNI), не расшифровывая содержимое, и перенаправляет соединение на настоящий сервер Google. Для внешнего наблюдателя это выглядит как легитимное соединение с нашим сервером.
+### The Solution
+A two-component system was implemented:
+1.  **Local Smart DNS Server (AdGuard Home)**: Intercepts requests to blocked domains and "tricks" the client by providing the IP address of our proxy server.
+2.  **Transparent SNI Proxy on Nginx**: Accepts encrypted TLS traffic, reads the server name (SNI) from it without decrypting the content, and redirects the connection to the real Google server. To an external observer, this looks like a legitimate connection to our server.
 
-**Схема работы трафика:**
-```
-[Ваш компьютер] --DNS--> [AdGuard Home] --DNS ответ с IP прокси--> [Ваш компьютер]
-[Ваш компьютер] --HTTPS трафик--> [SNI-прокси на Nginx] --Перенаправление по SNI--> [Серверы Google]
-```
+**Traffic Flow Diagram:**
+[Your Computer] --DNS--> [AdGuard Home] --DNS response with proxy IP--> [Your Computer]
+[Your Computer] --HTTPS traffic--> [SNI Proxy on Nginx] --Redirection via SNI--> [Google Servers]
 
-## 🚀 Особенности и преимущества
+text
 
-*   **Обход современных блокировок**: Система эффективно работает против блокировок на основе DPI и SNI-filtering.
-*   **Низкая задержка**: Основной трафик идет через ваш прокси-сервер, расположенный за рубежом. Размещение AdGuard Home локально ускоряет только этап DNS-запроса.
-*   **Дополнительные бонусы**: AdGuard Home обеспечивает блокировку рекламы и трекеров на уровне сети для всех устройств.
-*   **Автоматизация**: Скрипты для поддержки актуальности IP-адресов Google и подготовки проекта к развертыванию.
+## 🚀 Features and Advantages
 
-## 📂 Структура проекта
+*   **Bypasses Modern Blocking**: The system effectively works against DPI and SNI-filtering based blocks.
+*   **Low Latency**: Main traffic goes through your proxy server located abroad. Placing AdGuard Home locally only speeds up the DNS request stage.
+*   **Additional Benefits**: AdGuard Home provides network-level ad and tracker blocking for all devices.
+*   **Automation**: Scripts to maintain up-to-date Google IPs and prepare the project for deployment.
 
-```
+## 📂 Project Structure
 smart-dns-sni-proxy/
-├── docker-compose.yml          # Главный файл для запуска всех сервисов
-├── nginx-sni.conf             # Конфигурация SNI-прокси (основной компонент)
-├── nginx-dot.conf            # Конфигурация DNS-over-TLS прокси (опционально)
+├── docker-compose.yml # Main file to run all services
+├── nginx-sni.conf # SNI proxy configuration (main component)
+├── nginx-dot.conf # DNS-over-TLS proxy configuration (optional)
 ├── scripts/
-│   ├── update-google-ip.sh   # Скрипт автоматического обновления IP Google в конфиге
-│   └── prepare-for-github.sh # Скрипт для "очистки" проекта перед публикацией
+│ ├── update-google-ip.sh # Script for automatic Google IP updates in config
+│ └── prepare-for-github.sh # Script to "clean" the project before publication
 ├── config-examples/
-│   └── AdGuardHome.yaml.example # Шаблон конфига AdGuard Home БЕЗ паролей и ключей
-├── .env.example              # Пример файла с переменными окружения
-├── .gitignore               # Файл для Git, исключающий секретные данные
-├── README.md                # Этот файл
-└── setup.sh                 # Скрипт для быстрого развертывания (опционально)
-```
+│ └── AdGuardHome.yaml.example # AdGuard Home config template WITHOUT passwords & keys
+├── .env.example # Example environment variables file
+├── .gitignore # Git file excluding secret data
+├── README.md # This file (in Russian)
+├── README_EN.md # This file (in English)
+└── setup.sh # Quick deployment script (optional)
 
-## ⚙️ Подробное руководство по установке
+text
 
-### Предварительные требования
-*   Сервер за пределами зоны блокировок с Docker и Docker Compose.
-*   Белый IP-адрес на этом сервере.
-*   Базовые навыки работы с командной строкой Linux.
+## ⚙️ Detailed Installation Guide
 
-### Шаг 1: Клонирование и настройка
+### Prerequisites
+*   A server outside the blocking zone with Docker and Docker Compose installed.
+*   A white (public) IP address on this server.
+*   Basic Linux command line skills.
+
+### Step 1: Cloning and Configuration
 ```bash
-# 1. Клонируйте репозиторий
+# 1. Clone the repository
 git clone <your-repository-url>
 cd smart-dns-sni-proxy
 
-# 2. Создайте и настройте файл с секретами на основе примера
+# 2. Create and configure the secrets file based on the example
 cp .env.example .env
-nano .env # Отредактируйте, указав свой SERVER_IP и другие данные
+nano .env # Edit, specifying your SERVER_IP and other data
 
-# 3. Создайте рабочие директории и конфиг AdGuard
+# 3. Create working directories and the AdGuard config
 mkdir -p adguard-data/conf
 cp config-examples/AdGuardHome.yaml.example adguard-data/conf/AdGuardHome.yaml
 
-# 4. ОТКРОЙТЕ И ТЩАТЕЛЬНО ОТРЕДАКТИРУЙТЕ этот файл:
+# 4. OPEN AND THOROUGHLY EDIT this file:
 nano adguard-data/conf/AdGuardHome.yaml
-```
+Key Settings in AdGuardHome.yaml
+User and Password: Replace YOUR_USERNAME and YOUR_PASSWORD_HASH. You can generate the hash with:
 
-### Ключевые настройки в `AdGuardHome.yaml`
+bash
+docker run --rm adguard/adguardhome:v0.107.49 hash-password -p 'your_strong_password'
+DNS Rewrites: Ensure that in the filtering -> rewrites section for all Google domains (*.google.com, *.googleapis.com, etc.), the answer field contains your server's IP address (the same as in .env).
 
-*   **Пользователь и пароль**: Замените `YOUR_USERNAME` и `YOUR_PASSWORD_HASH`. Хэш можно сгенерировать командой:
-    ```bash
-    docker run --rm adguard/adguardhome:v0.107.49 hash-password -p 'your_strong_password'
-    ```
-*   **Переадресация DNS (rewrites)**: Убедитесь, что в секции `filtering -> rewrites` для всех доменов Google (`*.google.com`, `*.googleapis.com` и т.д.) в поле `answer` указан **IP-адрес вашего сервера** (тот же, что в `.env`).
-*   **Сертификаты TLS**: Если планируете использовать DNS-over-TLS, вставьте свои `certificate_chain` и `private_key`.
+TLS Certificates: If you plan to use DNS-over-TLS, insert your certificate_chain and private_key.
 
-### Шаг 2: Запуск системы
-```bash
-# Запустите все контейнеры в фоновом режиме
+Step 2: Launching the System
+bash
+# Run all containers in the background
 docker compose up -d
 
-# Проверьте статус
+# Check status
 docker compose ps
 
-# Просмотрите логи, если что-то пошло не так
+# View logs if something goes wrong
 docker compose logs -f sni-proxy
-```
+Step 3: Client Configuration
+DNS: On the device needing access, specify in the network settings the DNS server — your server's IP address.
 
-### Шаг 3: Настройка клиентов
+Testing: Open a browser and try to visit gemini.google.com. Traffic should now flow through your system.
 
-1.  **DNS**: На устройстве, которому нужен доступ, укажите в настройках сети DNS-сервер — **IP-адрес вашего сервера**.
-2.  **Проверка**: Откройте браузер и попробуйте зайти на `gemini.google.com`. Трафик должен проходить через вашу систему.
+🛠️ Technical Details and Troubleshooting
+How the SNI Proxy Works (nginx-sni.conf)
+Nginx in stream mode with the ssl_preread on option enabled can peek into the beginning of the TLS handshake and extract the server name without decrypting the entire session. Based on this name (via the map directive), it decides where to redirect the TCP connection.
 
-## 🛠 Технические детали и устранение неполадок
+Important Nuances Learned in Practice
+Don't Mix TLS Termination and SNI Proxy: The initial attempt to use Caddy to accept HTTPS and proxy to Nginx created an extra TLS layer. The final solution — the SNI proxy (sni-proxy) must listen on port 443 directly.
 
-### Как работает SNI-прокси (`nginx-sni.conf`)
-Nginx в режиме `stream` с включенной опцией `ssl_preread on` может заглянуть в начало TLS-рукопожатия и извлечь имя сервера, не расшифровывая весь сеанс. На основе этого имени (через директиву `map`) он решает, куда перенаправить TCP-соединение.
+AdGuard Must Return the Proxy IP, Not the Final Server IP: A classic mistake is to configure AdGuard to return Google's IP. This breaks the entire chain because the client will try to connect directly to the blocked IP.
 
-### Важные нюансы, выявленные на практике
-*   **Не смешивайте TLS-терминацию и SNI-прокси**: Изначальная попытка использовать Caddy для приема HTTPS и проксирования на Nginx создавала лишний слой TLS. Итоговое решение — SNI-прокси (`sni-proxy`) должен слушать порт **443 напрямую**.
-*   **AdGuard должен возвращать IP прокси, а не конечного сервера**: Классическая ошибка — настроить AdGuard на возврат IP Google. Это ломает всю цепочку, так как клиент попытается подключиться к заблокированному IP напрямую.
-*   **Автоматическое обновление IP Google**: IP-адреса Google со временем меняются. Скрипт `scripts/update-google-ip.sh`, запускаемый по cron, решает эту проблему.
+Automatic Google IP Updates: Google's IP addresses change over time. The scripts/update-google-ip.sh script, run via cron, solves this problem.
 
-### Типичные проблемы и решения
+Common Problems and Solutions
+Problem	Possible Cause	Solution
+Google sites don't open	AdGuard returns the wrong IP	Check the rewrites section in AdGuardHome.yaml.
+Server firewall	Open ports 53 (UDP/TCP for DNS) and 443 (TCP for HTTPS).
+Old Caddy container running	Stop it: docker stop caddy-https; docker rm caddy-https.
+Error port is already allocated	Port 443 is busy by another process	Find and free the port or use docker compose up -d --remove-orphans.
+No logs in sni-proxy	Requests aren't reaching port 443	Check DNS settings on the client and rewrites in AdGuard.
+Very slow performance	High ping to the server	Consider renting a VPS in a country with better ping (Kazakhstan, Turkey).
+System Health Check
+bash
+# 1. Check DNS (should return your server's IP)
+nslookup google.com <YOUR_SERVER_IP>
 
-| Проблема | Возможная причина | Решение |
-| :--- | :--- | :--- |
-| Сайты Google не открываются | AdGuard возвращает не тот IP | Проверьте секцию `rewrites` в `AdGuardHome.yaml`. |
-| | Брандмауэр сервера | Откройте порты 53 (UDP/TCP для DNS) и 443 (TCP для HTTPS). |
-| | Запущен старый контейнер Caddy | Остановите его: `docker stop caddy-https; docker rm caddy-https`. |
-| Ошибка `port is already allocated` | Порт 443 занят другим процессом | Найдите и освободите порт или используйте `docker compose up -d --remove-orphans`. |
-| Нет логов в `sni-proxy` | Запросы не доходят до порта 443 | Проверьте настройки DNS на клиенте и `rewrites` в AdGuard. |
-| Очень медленная работа | Высокий пинг до сервера | Рассмотрите аренду VPS в стране с лучшим пингом (Казахстан, Турция). |
+# 2. Check SNI proxy (key flags: --resolve and -k)
+curl -vk --resolve "google.com:443:<YOUR_SERVER_IP>" https://google.com
 
-### Проверка работоспособности
-```bash
-# 1. Проверка DNS (должен вернуть IP вашего сервера)
-nslookup google.com <IP_ВАШЕГО_СЕРВЕРА>
-
-# 2. Проверка SNI-прокси (ключевые флаги: --resolve и -k)
-curl -vk --resolve "google.com:443:<IP_ВАШЕГО_СЕРВЕРА>" https://google.com
-
-# 3. Просмотр логов SNI-прокси в реальном времени
+# 3. View SNI proxy logs in real time
 docker compose logs -f --tail=10 sni-proxy
-```
+🔄 Maintenance
+Automatic Google IP Updates
+Configure cron to run the script daily:
 
-## 🔄 Обслуживание
-
-### Автоматическое обновление IP Google
-Настройте cron для ежедневного выполнения скрипта:
-```bash
-# Откройте crontab
+bash
+# Open crontab
 crontab -e
-# Добавьте строку (обновлять в 3:00 каждый день)
-0 3 * * * cd /путь/к/проекту && ./scripts/update-google-ip.sh >> ./logs/cron.log 2>&1
-```
+# Add line (update at 3:00 AM daily)
+0 3 * * * cd /path/to/project && ./scripts/update-google-ip.sh >> ./logs/cron.log 2>&1
+Certificate Updates
+If you use DNS-over-TLS with your own certificates, remember to renew them before expiration. Place new files in the nginx-certs/ directory and restart the dot-proxy service.
 
-### Обновление сертификатов
-Если используете DNS-over-TLS со своими сертификатами, не забывайте обновлять их до истечения срока действия. Поместите новые файлы в директорию `nginx-certs/` и перезапустите сервис `dot-proxy`.
+📝 License and Disclaimer
+This project is distributed under the MIT License.
 
-## 📝 Лицензия и отказ от ответственности
+IMPORTANT: The use of technologies to bypass network restrictions may be regulated by local laws. This project is presented for educational and research purposes. The author is not responsible for how this code is applied.
 
-Этот проект распространяется под лицензией **MIT**.
-
-**ВАЖНО**: Использование технологий для обхода сетевых ограничений может регулироваться местным законодательством. Данный проект представлен в образовательных и исследовательских целях. Автор не несет ответственности за способ применения этого кода.
-
----
-
-**P.S.** Этот `README` — не просто инструкция, а конспект многих часов поиска, проб и ошибок. Надеюсь, он сэкономит ваше время и избавит от тех же "граблей", на которые наступили мы. Удачи
+P.S. This README is not just an instruction, but a summary of many hours of searching, trial, and error. I hope it saves your time and helps you avoid the same "rakes" we stepped on. Good luck!
